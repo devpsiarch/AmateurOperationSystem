@@ -9,4 +9,4 @@ but we have a deadline
 -> entering 32bit protected mode
 -> petition for implimentaion of memory access para
 -> implimented stack print
--> hex to decimal impli 
+-> hex to decimal impli

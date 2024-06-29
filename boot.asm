@@ -17,20 +17,24 @@ call switch_protected_mode
  
 jmp $
  
-;%include "src/printf.asm"
-;%include "src/printfp.asm"
+%include "src/print.asm"
 %include "gdt.asm"
 %include "protected_mode.asm"
- 
+
 [bits 32]
 begin_protected_mode:
- 
- 
+
 mov al,'A'
 mov ah,0x0f
 mov [0xb8000],ax
- 
+
+mov ebx,test_pm
+call print
+
 jmp $
  
+test_pm: db 'hello from protected mode!',0
+
+
 times 510-($-$$) db 0
 dw 0xaa55
