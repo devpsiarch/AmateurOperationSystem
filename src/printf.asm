@@ -1,3 +1,4 @@
+[bits 16]
 printf:
     pusha
     mov ah,0x0e

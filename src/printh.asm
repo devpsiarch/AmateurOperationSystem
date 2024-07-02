@@ -1,3 +1,4 @@
+[bits 16]
 ;there must be a way to do this in a loop too lazy to do it
 printh:
 pusha 

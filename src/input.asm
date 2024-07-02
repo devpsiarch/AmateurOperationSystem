@@ -1,3 +1,4 @@
+[bits 16]
 inputchar:
 pusha 
 

@@ -1,0 +1,5 @@
+[bits 16]
+clear:
+mov ah,0x0
+mov al,0x03
+int 0x10
