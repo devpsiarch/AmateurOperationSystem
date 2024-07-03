@@ -23,11 +23,11 @@ call switch_protected_mode
 jmp $
 %include "src/cs16.asm" 
 %include "src/printf32.asm"
-%include "gdt.asm"
-%include "load_gdt.asm"
+%include "gdt/gdt.asm"
+%include "gdt/load_gdt.asm"
 %include "src/printf.asm"
 %include "src/loaddisk.asm"
-%include "load_kernel.asm"
+%include "kernel/load_kernel.asm"
 
 [bits 32]
 begin_protected_mode:
