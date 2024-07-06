@@ -1,3 +1,6 @@
+all:bin/OS.bin	
+
+
 file=kernel
 
 bin/boot.bin:gdt/gdt.asm boot.asm src/printf.asm src/printf32.asm gdt/load_gdt.asm kernel/load_kernel.asm src/loaddisk.asm 
@@ -18,11 +21,16 @@ bin/full_kernel.bin:obj/kernel.o obj/kernel_entry.o
 bin/OS.bin:bin/boot.bin bin/full_kernel.bin bin/zeros.bin
 	cat bin/boot.bin bin/full_kernel.bin bin/zeros.bin > bin/OS.bin
 
-start:
+OS:bin/OS.bin
 	 qemu-system-x86_64.exe -fda bin/OS.bin -boot a
 
-clear:
+clean:
 	rm bin/boot.bin
+	rm bin/full_kernel.bin
+	rm bin/zeros.bin
+	rm bin/OS.bin
+	rm obj/kernel.o
+	rm obj/kernel_entry.o
 
 run:
 	qemu-system-x86_64.exe -fda bin/boot.bin -boot a
@@ -42,7 +50,7 @@ binary:$(file).c
 disasm:$(file).bin
 	ndisasm -b 32 bin/$(file).bin > dis/$(file).dis
 
-os:	
+build:	
 	nasm -f bin zeros.asm -o bin/zeros.bin	#assembles buffer to make sure reading is done 
 	nasm -f bin boot.asm -o bin/boot.bin	#assembles boot loader
 	nasm kernel/kernel_entry.asm -f elf32 -o obj/kernel_entry.o	#assembles kernel entry routine
