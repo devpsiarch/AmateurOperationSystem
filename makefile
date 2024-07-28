@@ -1,4 +1,4 @@
-all:bin/OS.bin	
+all:OS	
 
 
 file=kernel
@@ -12,7 +12,8 @@ bin/zeros.bin:zeros.asm
 obj/kernel_entry.o:kernel/kernel_entry.asm
 	nasm kernel/kernel_entry.asm -f elf32 -o obj/kernel_entry.o
 
-obj/kernel.o:kernel/kernel.c
+#probebly where us should add if u added files to kernel
+obj/kernel.o:kernel/kernel.c kernel/kernel.h
 	 gcc -fno-pie -ffreestanding -c -m32 kernel/kernel.c -o obj/kernel.o
 
 bin/full_kernel.bin:obj/kernel.o obj/kernel_entry.o
@@ -56,6 +57,8 @@ build:
 	nasm kernel/kernel_entry.asm -f elf32 -o obj/kernel_entry.o	#assembles kernel entry routine
 	gcc -fno-pie -ffreestanding -c -m32 kernel/kernel.c -o obj/kernel.o	#compiles kernel.c in 32bit 
 	
-	ld -o bin/full_kernel.bin -e main -m elf_i386 -s -Ttext 0x1000 obj/kernel_entry.o obj/kernel.o --oformat binary	#links object files
+	ld -o bin/full_kernel.bin -e main -m elf_i386 -s -Ttext 0x1000 obj/kernel_entry.o obj/kernel.o --oformat binary 
+	#links object files
+	
 	cat bin/boot.bin bin/full_kernel.bin bin/zeros.bin > bin/OS.bin		#concatenate binary files into one file
 	qemu-system-x86_64.exe -fda bin/OS.bin -boot a	#run the binary using qemu
