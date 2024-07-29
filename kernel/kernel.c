@@ -13,8 +13,12 @@ extern void main(void){
 	print_newline();
 	print_string("i am from the futur and your rich");
 	print_newline();	
-	print_integer(12345);
+	print_integer(1234567890);
 	print_newline();	
+	print_newline();
+	clear_screen();	
+	test_input();
+
 
 	return;
 }

@@ -13,7 +13,7 @@ obj/kernel_entry.o:kernel/kernel_entry.asm
 	nasm kernel/kernel_entry.asm -f elf32 -o obj/kernel_entry.o
 
 #probebly where us should add if u added files to kernel
-obj/kernel.o:kernel/kernel.c kernel/kernel.h
+obj/kernel.o:kernel/kernel.c kernel/kernel.h kernel/keyboard.h
 	 gcc -fno-pie -ffreestanding -c -m32 kernel/kernel.c -o obj/kernel.o
 
 bin/full_kernel.bin:obj/kernel.o obj/kernel_entry.o

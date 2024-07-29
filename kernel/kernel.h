@@ -1,6 +1,8 @@
 #ifndef KERNEL_H
 #define KERNEL_H
 
+#include "keyboard.h"
+
 //some definitions
 typedef unsigned char uint8;
 typedef unsigned short uint16;
@@ -33,6 +35,7 @@ enum vga_color {
 
 
 #define NULL 0
+#define TRUE 1
 
 #define VGA_ADDRESS 0xB8000
 #define VGA_32bit_ADDRESS 0xA0000
@@ -158,6 +161,147 @@ void print_integer(int num){
 	char integer_string[degit_count(num)+1];
 	itc(num,integer_string);
 	print_string(integer_string);
+}
+
+//gets in from port and return it 
+uint8 inb(uint16 port)
+{
+  uint8 ret;
+  asm volatile("inb %1, %0" : "=a"(ret) : "d"(port));
+  return ret;
+}
+//gets in from port and send to 
+void outb(uint16 port, uint8 data)
+{
+  asm volatile("outb %0, %1" : "=a"(data) : "d"(port));
+}
+
+
+char get_input_keyboard(){
+	char ch = 0;
+	while((ch = inb(KEYBOARD_PORT)) != 0){
+		if(ch > 0){
+			return ch;
+		}	
+	}
+	return ch;
+}
+
+
+//waits , gets the CPU busy to od nothing whatsoever
+void wait_for_io(uint32 timer_count)
+{
+  while(1){
+    asm volatile("nop");
+    timer_count--;
+    if(timer_count <= 0)
+      break;
+    }
+}
+//sleeps lol
+void sleep(int timesleep){
+	wait_for_io(timesleep);
+}
+
+char get_ASCII_char(char keyCode) {
+    switch (keyCode) {
+        case KEY_A:
+            return 'A';
+        case KEY_B:
+            return 'B';
+        case KEY_C:
+            return 'C';
+        case KEY_D:
+            return 'D';
+        case KEY_E:
+            return 'E';
+        case KEY_F:
+            return 'F';
+        case KEY_G:
+            return 'G';
+        case KEY_H:
+            return 'H';
+        case KEY_I:
+            return 'I';
+        case KEY_J:
+            return 'J';
+        case KEY_K:
+            return 'K';
+        case KEY_L:
+            return 'L';
+        case KEY_M:
+            return 'M';
+        case KEY_N:
+            return 'N';
+        case KEY_O:
+            return 'O';
+        case KEY_P:
+            return 'P';
+        case KEY_Q:
+            return 'Q';
+        case KEY_R:
+            return 'R';
+        case KEY_S:
+            return 'S';
+        case KEY_T:
+            return 'T';
+        case KEY_U:
+            return 'U';
+        case KEY_V:
+            return 'V';
+        case KEY_W:
+            return 'W';
+        case KEY_X:
+            return 'X';
+        case KEY_Y:
+            return 'Y';
+        case KEY_Z:
+            return 'Z';
+        case KEY_1:
+            return '1';
+        case KEY_2:
+            return '2';
+        case KEY_3:
+            return '3';
+        case KEY_4:
+            return '4';
+        case KEY_5:
+            return '5';
+        case KEY_6:
+            return '6';
+        case KEY_7:
+            return '7';
+        case KEY_8:
+            return '8';
+        case KEY_9:
+            return '9';
+        case KEY_0:
+            return '0';
+		case KEY_SPACE:
+		   return ' ';	
+		default:
+            return '\0'; // Return null character for unknown keycodes
+    }
+}
+
+void test_input(){
+	char ch = 0;
+	char keycode = 0;
+
+	do{
+		keycode = get_input_keyboard();
+		if(keycode == KEY_ENTER){
+			print_newline();
+		}else{
+			ch = get_ASCII_char(keycode);
+			if('\0'){
+				putchar('!');
+				continue;
+			}
+			putchar(ch);
+		}
+		sleep(0x02FFFFFF);
+	}while(ch > 0);
 }
 
 
