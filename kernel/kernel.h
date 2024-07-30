@@ -33,6 +33,9 @@ enum vga_color {
     WHITE,
 };
 
+uint8 global_for_color = WHITE;
+uint8 global_back_color = BLACK;
+
 
 #define NULL 0
 #define TRUE 1
@@ -78,12 +81,14 @@ void vga_clear(uint16 **buffer, uint8 for_color,uint8 back_color){
 //init the parameters for the vga mode 
 void vga_init(uint8 for_color,uint8 back_color){
 	vga_buffer = (uint16*) VGA_ADDRESS;
-	vga_clear(&vga_buffer,for_color,back_color);	
+	vga_clear(&vga_buffer,for_color,back_color);
+	global_for_color = for_color;
+	global_back_color = back_color;	
 }
 
 //prints char
 void putchar(char c){
-	vga_buffer[vga_index] = vga_entry(c,WHITE,BLACK);
+	vga_buffer[vga_index] = vga_entry(c,global_for_color,global_back_color);
 	vga_index++;	
 }
 
@@ -94,14 +99,14 @@ void clear_screen(){
                 vm[i] = ' ';
                 i++;
         }
-		vga_clear(&vga_buffer,WHITE,BLACK);
+		vga_clear(&vga_buffer,global_for_color,global_back_color);
 }
 
 //obviously new line 
 void print_newline(){
 	if(next_line_index >= 55){
 		next_line_index = 0 ;
-		vga_clear(&vga_buffer,WHITE,BLACK);
+		vga_clear(&vga_buffer,global_for_color,global_back_color);
 	}
 	vga_index = 80*next_line_index;
 	next_line_index++;
@@ -157,7 +162,7 @@ void itc(int num,char *str_number){
 }
 
 
-void print_integer(int num){
+void print_int(int num){
 	char integer_string[degit_count(num)+1];
 	itc(num,integer_string);
 	print_string(integer_string);
@@ -302,6 +307,16 @@ void test_input(){
 		}
 		sleep(0x02FFFFFF);
 	}while(ch > 0);
+}
+
+void print_center(char *string){
+	int len = strlen(string);
+	int left = (80 - len)/2;	
+	for(int i = 0 ; i < left ; i++){
+		putchar(' ');
+	}
+	print_string(string);
+	print_newline();
 }
 
 
