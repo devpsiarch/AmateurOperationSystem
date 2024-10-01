@@ -2,19 +2,30 @@ all:OS
 
 
 file=kernel
+KERNEL_FILES := $(wildcard kernel/*.asm)
+KERNEL_UTILS := $(wildcard kernel/utils/*.h)
 
-bin/boot.bin:gdt/gdt.asm boot.asm src/printf.asm src/printf32.asm gdt/load_gdt.asm kernel/load_kernel.asm src/loaddisk.asm 
+BOOT_FILE := boot.asm
+ZERO_FILE := zeros.asm
+
+#BOOT_BIN needs all in gdt , src , kernel
+BOOT_BIN := $(wildcard gdt/*.asm src/*.asm)
+
+
+bin/boot.bin:$(BOOT_BIN) $(KERNEL_FILES)
 	nasm -f bin boot.asm -o bin/boot.bin	
 
-bin/zeros.bin:zeros.asm
+bin/zeros.bin:$(ZERO_FILE)
 	nasm -f bin zeros.asm -o bin/zeros.bin
 
-obj/kernel_entry.o:kernel/kernel_entry.asm
+obj/kernel_entry.o:$(KERNEL_FILES)
 	nasm kernel/kernel_entry.asm -f elf32 -o obj/kernel_entry.o
 
 #probebly where us should add if u added files to kernel
-obj/kernel.o:kernel/kernel.c kernel/kernel.h kernel/keyboard.h
+obj/kernel.o:kernel/kernel.c $(KERNEL_UTILS) 
 	 gcc -fno-pie -ffreestanding -c -m32 kernel/kernel.c -o obj/kernel.o
+
+# i dont think ill need to refactor much code here 
 
 bin/full_kernel.bin:obj/kernel.o obj/kernel_entry.o
 	ld -o bin/full_kernel.bin -e main -m elf_i386 -s -Ttext 0x1000 obj/kernel_entry.o obj/kernel.o --oformat binary
@@ -26,13 +37,8 @@ OS:bin/OS.bin
 	 qemu-system-x86_64.exe -fda bin/OS.bin -boot a
 
 clean:
-	rm bin/boot.bin
-	rm bin/full_kernel.bin
-	rm bin/zeros.bin
-	rm bin/OS.bin
-	rm obj/kernel.o
-	rm obj/kernel_entry.o
-
+	rm bin/*
+	rm obj/*
 run:
 	qemu-system-x86_64.exe -fda bin/boot.bin -boot a
 

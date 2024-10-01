@@ -1,9 +1,8 @@
-#include "kernel.h"
-
+#include "utils/kernel.h"
 
 extern void main(void){
 	vga_init(WHITE,BLUE);
 	print_center("Welcome to my OS");
-
+	test_input();
 	return;
 }
