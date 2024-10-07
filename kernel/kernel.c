@@ -1,8 +1,9 @@
-#include "utils/kernel.h"
+#include "src/kernel.h"
 
 extern void main(void){
-	vga_init(GREEN,BLACK);	
-	clear_screen();
-	print_string("hello father...");
-	return;
+	fb_init(GREEN,BLACK);	
+	fb_clear(GREEN,BLACK);
+    let_char('A',80);
+    print_string("hello my friends");
+    return;
 }

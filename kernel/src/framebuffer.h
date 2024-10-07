@@ -1,8 +1,9 @@
 #ifndef FRAMEBUFFER_H
 #define FEAMEBUFFER_H
-typedef unsigned char uint8;
-typedef unsigned short uint16;
-typedef unsigned int uint32;
+
+typedef unsigned char U8;
+typedef unsigned short U16;
+typedef unsigned int U32;
 
 
 //ascii code for degits 0 -> 9
@@ -30,8 +31,8 @@ enum vga_color {
     WHITE,
 };
 
-uint8 global_for_color = WHITE;
-uint8 global_back_color = BLACK;
+U8 global_for_color = WHITE;
+U8 global_back_color = BLACK;
 
 
 #include "./keyboard.h"
@@ -39,27 +40,27 @@ uint8 global_back_color = BLACK;
 #define NULL 0
 #define TRUE 1
 
-#define VGA_ADDRESS 0xB8000
-#define VGA_32bit_ADDRESS 0xA0000
+#define FRAMEBUFFER_ADDRESS       0xB8000
+#define FRAMEBUFFER_32BIT_ADDRESS 0xA0000
 
 //for the printing strings and such hold chars ...
-#define BUFFER_SIZE 2200 
+#define BUFFER_CAP 2200 
 
-uint16* vga_buffer;
-int vga_index = 0;
-static int next_line_index = 1;
+U16* fb;
+int fb_size = 0;
+static int fb_nli = 1; //next line index
 
-uint16 vga_entry(unsigned char ch, uint8 fore_color, uint8 back_color);
-void vga_clear(uint16 **buffer, uint8 for_color,uint8 back_color);
-void vga_init(uint8 for_color,uint8 back_color);
+U16 fb_cell(unsigned char ch, U8 fore_color, U8 back_color);
+void fb_clear(U8 for_color,U8 back_color);
+void vga_init(U8 for_color,U8 back_color);
 void putchar(char c);
-void clear_screen();
+void let_char(char c,int loc);
 void print_newline();
 void print_string(char *str);
-uint8 inb(uint16 port);
-void outb(uint16 port, uint8 data);
+U8 inb(U16 port);
+void outb(U16 port, U8 data);
 char get_input_keyboard();
-void wait_for_io(uint32 timer_count);
+void wait_for_io(U32 timer_count);
 void sleep(int timesleep);
 char get_ASCII_char(char keyCode);
 void test_input();
@@ -67,15 +68,18 @@ void print_center(char *string);
 
 #endif
 
+#ifndef FRAMEBUFFER_H 
+#define FRAMEBUFFER_H
 
 //NOW the C part of the implimention
 
-//this was copied idk what it does , it just works lol
-//nah it just constructs a VGA text mode
-uint16 vga_entry(unsigned char ch, uint8 fore_color, uint8 back_color) 
+
+//each cell of the framebuffer is a 16bit "cell" in a sense
+//here we are creating a "cell" a 16 bit value that has : ASCII (8bits) + fg(4bits) + bg(4bits)
+U16 fb_cell(unsigned char ch, U8 fore_color, U8 back_color) 
 {
-  uint16 ax = 0;
-  uint8 ah = 0, al = 0;
+  U16 ax = 0;
+  U8 ah = 0, al = 0;
 
   ah = back_color;
   ah <<= 4;
@@ -88,47 +92,42 @@ uint16 vga_entry(unsigned char ch, uint8 fore_color, uint8 back_color)
   return ax;
 }
 
-//clears the buffer that holds the content of the vga address
-void vga_clear(uint16 **buffer, uint8 for_color,uint8 back_color){
-	for(int i = 0 ; i < BUFFER_SIZE ; i++){
-		(*buffer)[i] = vga_entry(NULL,for_color,back_color);
+//clears the framebuffer 
+void fb_clear(U8 for_color,U8 back_color){
+	for(int i = 0 ; i < BUFFER_CAP ; i++){
+		(fb)[i] = fb_cell(NULL,for_color,back_color);
 	}
-	vga_index = 0;
-	next_line_index = 1;
+	fb_size = 0;
+	fb_nli = 1;
 }
 
-//init the parameters for the vga mode 
-void vga_init(uint8 for_color,uint8 back_color){
-	vga_buffer = (uint16*) VGA_ADDRESS;
-	vga_clear(&vga_buffer,for_color,back_color);
+//init the framebuffer size and pointer 
+void fb_init(U8 for_color,U8 back_color){
+	fb = (U16*) FRAMEBUFFER_ADDRESS;
+	fb_clear(for_color,back_color);
 	global_for_color = for_color;
 	global_back_color = back_color;	
 }
 
-//prints char
+//overwrites a char in the framebuffer's next available cell 
 void putchar(char c){
-	vga_buffer[vga_index] = vga_entry(c,global_for_color,global_back_color);
-	vga_index++;	
+	fb[fb_size] = fb_cell(c,global_for_color,global_back_color);
+	fb_size++;	
 }
 
-//clears screen
-void clear_screen(){
-        char *vm = (char*) VGA_ADDRESS;
-        for(int i = 0; i < 80*25*2;i++){
-                vm[i] = ' ';
-                i++;
-        }
-		vga_clear(&vga_buffer,global_for_color,global_back_color);
+//overwrites any cell in the framebuffer
+void let_char(char c,int loc){
+	fb[loc] = fb_cell(c,global_for_color,global_back_color);
 }
 
 //obviously new line 
 void print_newline(){
-	if(next_line_index >= 55){
-		next_line_index = 0 ;
-		vga_clear(&vga_buffer,global_for_color,global_back_color);
+	if(fb_nli >= 55){
+		fb_nli = 0 ;
+		fb_clear(global_for_color,global_back_color);
 	}
-	vga_index = 80*next_line_index;
-	next_line_index++;
+	fb_size = 80*fb_nli;
+	fb_nli++;
 }
 
 //prints string duh
@@ -188,14 +187,14 @@ void print_int(int num){
 }
 
 //gets in from port and return it 
-uint8 inb(uint16 port)
+U8 inb(U16 port)
 {
-  uint8 ret;
+  U8 ret;
   asm volatile("inb %1, %0" : "=a"(ret) : "d"(port));
   return ret;
 }
 //gets in from port and send to 
-void outb(uint16 port, uint8 data)
+void outb(U16 port, U8 data)
 {
   asm volatile("outb %0, %1" : "=a"(data) : "d"(port));
 }
@@ -213,7 +212,7 @@ char get_input_keyboard(){
 
 
 //waits , gets the CPU busy to od nothing whatsoever
-void wait_for_io(uint32 timer_count)
+void wait_for_io(U32 timer_count)
 {
   while(1){
     asm volatile("nop");
@@ -338,3 +337,4 @@ void print_center(char *string){
 	print_newline();
 }
 
+#endif // END of the C part
