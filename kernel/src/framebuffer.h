@@ -37,6 +37,15 @@ U8 global_back_color = BLACK;
 
 #include "./keyboard.h"
 
+/* The I/O ports */
+#define FB_COMMAND_PORT         0x3D4
+#define FB_DATA_PORT            0x3D5
+
+/* The I/O port commands */
+#define FB_HIGH_BYTE_COMMAND    14
+#define FB_LOW_BYTE_COMMAND     15
+
+
 #define NULL 0
 #define TRUE 1
 
@@ -57,8 +66,10 @@ void putchar(char c);
 void let_char(char c,int loc);
 void print_newline();
 void print_string(char *str);
+
+void outb(U16 port,U8 data);
+void fb_move_cursor(unsigned short pos);
 U8 inb(U16 port);
-void outb(U16 port, U8 data);
 char get_input_keyboard();
 void wait_for_io(U32 timer_count);
 void sleep(int timesleep);
@@ -97,6 +108,7 @@ void fb_clear(U8 for_color,U8 back_color){
 	for(int i = 0 ; i < BUFFER_CAP ; i++){
 		(fb)[i] = fb_cell(NULL,for_color,back_color);
 	}
+	fb_move_cursor(fb_size);
 	fb_size = 0;
 	fb_nli = 1;
 }
@@ -113,6 +125,7 @@ void fb_init(U8 for_color,U8 back_color){
 void putchar(char c){
 	fb[fb_size] = fb_cell(c,global_for_color,global_back_color);
 	fb_size++;	
+	fb_move_cursor(fb_size);
 }
 
 //overwrites any cell in the framebuffer
@@ -128,6 +141,7 @@ void print_newline(){
 	}
 	fb_size = 80*fb_nli;
 	fb_nli++;
+	fb_move_cursor(fb_size);
 }
 
 //prints string duh
@@ -186,17 +200,21 @@ void print_int(int num){
 	print_string(integer_string);
 }
 
+void fb_move_cursor(unsigned short pos)
+{
+	outb(FB_COMMAND_PORT, FB_HIGH_BYTE_COMMAND);
+	outb(FB_DATA_PORT,    ((pos >> 8) & 0x00FF));
+	outb(FB_COMMAND_PORT, FB_LOW_BYTE_COMMAND);
+	outb(FB_DATA_PORT,    pos & 0x00FF);
+}
+
+
 //gets in from port and return it 
 U8 inb(U16 port)
 {
   U8 ret;
   asm volatile("inb %1, %0" : "=a"(ret) : "d"(port));
   return ret;
-}
-//gets in from port and send to 
-void outb(U16 port, U8 data)
-{
-  asm volatile("outb %0, %1" : "=a"(data) : "d"(port));
 }
 
 

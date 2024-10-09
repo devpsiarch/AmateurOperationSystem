@@ -3,7 +3,8 @@ all:OS
 
 file=kernel
 KERNEL_FILES := $(wildcard kernel/*.asm)
-KERNEL_SRC := $(wildcard kernel/src/*.h)
+KERNEL_HEADER := $(wildcard kernel/src/*.h)
+KERNEL_ASSEML := $(wildcard kernel/src/*.s)
 
 BOOT_FILE := boot/boot.asm
 ZERO_FILE := boot/zeros.asm
@@ -22,13 +23,15 @@ obj/kernel_entry.o:$(KERNEL_FILES)
 	nasm kernel/kernel_entry.asm -f elf32 -o obj/kernel_entry.o
 
 #probebly where us should add if u added files to kernel
-obj/kernel.o:kernel/kernel.c $(KERNEL_SRC) 
-	 gcc -Wall -Wextra -Werror -fno-pie -ffreestanding -c -m32 kernel/kernel.c -o obj/kernel.o
+obj/kernel.o:kernel/kernel.c $(KERNEL_HEADER) 
+	gcc -Wall -Wextra -Werror -fno-pie -ffreestanding -m32 -c kernel/kernel.c -o obj/kernel.o 
 
 # i dont think ill need to refactor much code here 
+obj/kernel_source.o:$(KERNEL_ASSEML)
+	gcc -c -m32 -masm=intel -Wall -Wextra $(KERNEL_ASSEML) -o obj/kernel_source.o 
 
-bin/full_kernel.bin:obj/kernel.o obj/kernel_entry.o
-	ld -o bin/full_kernel.bin -e main -m elf_i386 -s -Ttext 0x1000 obj/kernel_entry.o obj/kernel.o --oformat binary
+bin/full_kernel.bin:obj/kernel.o obj/kernel_entry.o obj/kernel_source.o
+	ld -o bin/full_kernel.bin -e main -m elf_i386 -s -Ttext 0x1000 obj/kernel_entry.o obj/kernel.o obj/kernel_source.o --oformat binary
 
 bin/OS.bin:bin/boot.bin bin/full_kernel.bin bin/zeros.bin
 	cat bin/boot.bin bin/full_kernel.bin bin/zeros.bin > bin/OS.bin
@@ -68,3 +71,4 @@ build:
 	
 	cat bin/boot.bin bin/full_kernel.bin bin/zeros.bin > bin/OS.bin													#concatenate binary files into one file
 	qemu-system-x86_64.exe -fda bin/OS.bin -boot a																	#run the binary using qemu
+

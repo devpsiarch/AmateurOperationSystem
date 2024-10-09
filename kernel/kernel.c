@@ -2,8 +2,9 @@
 
 extern void main(void){
 	fb_init(GREEN,BLACK);	
-	fb_clear(GREEN,BLACK);
-    let_char('A',80);
+    fb_clear(GREEN,BLACK);
+
     print_string("hello my friends");
+	print_newline();
     return;
 }
