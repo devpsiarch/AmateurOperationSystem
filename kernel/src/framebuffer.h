@@ -53,7 +53,7 @@ U8 global_back_color = BLACK;
 #define FRAMEBUFFER_32BIT_ADDRESS 0xA0000
 
 //for the printing strings and such hold chars ...
-#define BUFFER_CAP 2200 
+#define BUFFER_CAP 4000 
 
 U16* fb;
 int fb_size = 0;
@@ -67,6 +67,8 @@ void let_char(char c,int loc);
 void print_newline();
 void print_string(char *str);
 
+void fb_copy_row(int rs,int rd);
+void mem_copy(char *dst,char *src,int size_bytes);
 void outb(U16 port,U8 data);
 void fb_move_cursor(unsigned short pos);
 U8 inb(U16 port);
@@ -79,8 +81,8 @@ void print_center(char *string);
 
 #endif
 
-#ifndef FRAMEBUFFER_H 
-#define FRAMEBUFFER_H
+#ifndef FRAMEBUFFER_IMPLI
+#define FRAMEBUFFER_IMPLI
 
 //NOW the C part of the implimention
 
@@ -103,13 +105,13 @@ U16 fb_cell(unsigned char ch, U8 fore_color, U8 back_color)
   return ax;
 }
 
-//clears the framebuffer 
+//clears the buffer 
 void fb_clear(U8 for_color,U8 back_color){
 	for(int i = 0 ; i < BUFFER_CAP ; i++){
 		(fb)[i] = fb_cell(NULL,for_color,back_color);
 	}
-	fb_move_cursor(fb_size);
 	fb_size = 0;
+	fb_move_cursor(fb_size);
 	fb_nli = 1;
 }
 
@@ -121,8 +123,22 @@ void fb_init(U8 for_color,U8 back_color){
 	global_back_color = back_color;	
 }
 
+//copies a rows of a framebuffer to another
+//row src and row dst
+void fb_copy_row(int rs,int rd){
+	for(int i = 0 ; i < 80 ; i++){
+		fb[rs*80+i] = fb[rd*80+i];
+	}
+}
+
 //overwrites a char in the framebuffer's next available cell 
 void putchar(char c){
+	if(fb_size == 80*25) {
+		for(int i = 0 ; i < 25 ; i++){
+			fb_copy_row(i,i+1);
+		}
+		fb_size -= 80;
+	}
 	fb[fb_size] = fb_cell(c,global_for_color,global_back_color);
 	fb_size++;	
 	fb_move_cursor(fb_size);
@@ -198,6 +214,14 @@ void print_int(int num){
 	char integer_string[degit_count(num)+1];
 	itc(num,integer_string);
 	print_string(integer_string);
+}
+
+
+//copies the char bytes from src to dst only (dont change it idiot)
+void mem_copy(char *dst,char *src,int size_bytes){
+	for(int i = 0 ; i < size_bytes ; i++){
+		dst[i] = src[i];
+	}
 }
 
 void fb_move_cursor(unsigned short pos)

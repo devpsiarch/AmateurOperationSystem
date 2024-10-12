@@ -3,8 +3,13 @@
 extern void main(void){
 	fb_init(GREEN,BLACK);	
     fb_clear(GREEN,BLACK);
+	char temp = 'A';
+	for(int i = 0 ; i < 26 ;i++){
+		for(int i = 0 ; i < 80 ; i++){
+		putchar(temp);
+		}
+		temp ++;
+	}
 
-    print_string("hello my friends");
-	print_newline();
     return;
 }
