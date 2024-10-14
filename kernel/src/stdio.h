@@ -34,13 +34,26 @@ enum vga_color {
 U8 global_for_color = WHITE;
 U8 global_back_color = BLACK;
 
-
-#include "./keyboard.h"
-
 /* The I/O ports */
 #define FB_COMMAND_PORT         0x3D4
 #define FB_DATA_PORT            0x3D5
 
+/* All the I/O ports are calculated relative to the data port. This is because
+     * all serial ports (COM1, COM2, COM3, COM4) have their ports in the same
+     * order, but they start at different values.
+     */
+
+#define SERIAL_COM1_BASE                0x3F8      /* COM1 base port */
+
+#define SERIAL_DATA_PORT(base)          (base)
+#define SERIAL_FIFO_COMMAND_PORT(base)  (base + 2)
+#define SERIAL_LINE_COMMAND_PORT(base)  (base + 2)
+#define SERIAL_MODEM_COMMAND_PORT(base) (base + 4)
+#define SERIAL_LINE_STATUS_PORT(base)   (base + 5)
+
+
+
+#define SERIAL_LINE_ENABLE_DLAB         0x80
 /* The I/O port commands */
 #define FB_HIGH_BYTE_COMMAND    14
 #define FB_LOW_BYTE_COMMAND     15
@@ -58,6 +71,9 @@ U8 global_back_color = BLACK;
 U16* fb;
 int fb_size = 0;
 static int fb_nli = 1; //next line index
+void serial_configure_baud_rate(U16 com,U16 divisor);
+void serial_configure_line(U16 com);
+int serial_is_transmit_fifo_empty(unsigned int com);
 
 U16 fb_cell(unsigned char ch, U8 fore_color, U8 back_color);
 void fb_clear(U8 for_color,U8 back_color);
@@ -70,13 +86,10 @@ void print_string(char *str);
 void fb_copy_row(int rs,int rd);
 void mem_copy(char *dst,char *src,int size_bytes);
 void outb(U16 port,U8 data);
+U8 inb(U8 port);
 void fb_move_cursor(unsigned short pos);
-U8 inb(U16 port);
-char get_input_keyboard();
 void wait_for_io(U32 timer_count);
 void sleep(int timesleep);
-char get_ASCII_char(char keyCode);
-void test_input();
 void print_center(char *string);
 
 #endif
@@ -89,6 +102,31 @@ void print_center(char *string);
 
 //each cell of the framebuffer is a 16bit "cell" in a sense
 //here we are creating a "cell" a 16 bit value that has : ASCII (8bits) + fg(4bits) + bg(4bits)
+
+void serial_configure_baud_rate(U16 com,U16 divisor)
+{
+	outb(SERIAL_LINE_COMMAND_PORT(com),
+		 SERIAL_LINE_ENABLE_DLAB);
+	outb(SERIAL_DATA_PORT(com),
+		 (divisor >> 8) & 0x00FF);
+	outb(SERIAL_DATA_PORT(com),
+		 divisor & 0x00FF);
+}
+void serial_configure_line(U16 com)
+{
+	/* Bit:     | 7 | 6 | 5 4 3 | 2 | 1 0 |
+	 * Content: | d | b | prty  | s | dl  |
+	 * Value:   | 0 | 0 | 0 0 0 | 0 | 1 1 | = 0x03
+	 */
+	outb(SERIAL_LINE_COMMAND_PORT(com), 0x03);
+}
+
+int serial_is_transmit_fifo_empty(unsigned int com)
+{
+	/* 0x20 = 0010 0000 */
+	return inb(SERIAL_LINE_STATUS_PORT(com)) & 0x20;
+}
+
 U16 fb_cell(unsigned char ch, U8 fore_color, U8 back_color) 
 {
   U16 ax = 0;
@@ -131,13 +169,20 @@ void fb_copy_row(int rs,int rd){
 	}
 }
 
+//this is a scroll down methode , it decrements the current size of the buffer that points to the framebuffer !!!
+void scroll_down(){
+	for(int i = 0 ; i < 25 ; i++){
+		fb_copy_row(i,i+1);
+	}
+	fb_size -= 80;
+}
+
+
+
 //overwrites a char in the framebuffer's next available cell 
 void putchar(char c){
 	if(fb_size == 80*25) {
-		for(int i = 0 ; i < 25 ; i++){
-			fb_copy_row(i,i+1);
-		}
-		fb_size -= 80;
+		scroll_down();
 	}
 	fb[fb_size] = fb_cell(c,global_for_color,global_back_color);
 	fb_size++;	
@@ -233,24 +278,6 @@ void fb_move_cursor(unsigned short pos)
 }
 
 
-//gets in from port and return it 
-U8 inb(U16 port)
-{
-  U8 ret;
-  asm volatile("inb %1, %0" : "=a"(ret) : "d"(port));
-  return ret;
-}
-
-
-char get_input_keyboard(){
-	char ch = 0;
-	while((ch = inb(KEYBOARD_PORT)) != 0){
-		if(ch > 0){
-			return ch;
-		}	
-	}
-	return ch;
-}
 
 
 //waits , gets the CPU busy to od nothing whatsoever
@@ -268,106 +295,6 @@ void sleep(int timesleep){
 	wait_for_io(timesleep);
 }
 
-char get_ASCII_char(char keyCode) {
-    switch (keyCode) {
-        case KEY_A:
-            return 'A';
-        case KEY_B:
-            return 'B';
-        case KEY_C:
-            return 'C';
-        case KEY_D:
-            return 'D';
-        case KEY_E:
-            return 'E';
-        case KEY_F:
-            return 'F';
-        case KEY_G:
-            return 'G';
-        case KEY_H:
-            return 'H';
-        case KEY_I:
-            return 'I';
-        case KEY_J:
-            return 'J';
-        case KEY_K:
-            return 'K';
-        case KEY_L:
-            return 'L';
-        case KEY_M:
-            return 'M';
-        case KEY_N:
-            return 'N';
-        case KEY_O:
-            return 'O';
-        case KEY_P:
-            return 'P';
-        case KEY_Q:
-            return 'Q';
-        case KEY_R:
-            return 'R';
-        case KEY_S:
-            return 'S';
-        case KEY_T:
-            return 'T';
-        case KEY_U:
-            return 'U';
-        case KEY_V:
-            return 'V';
-        case KEY_W:
-            return 'W';
-        case KEY_X:
-            return 'X';
-        case KEY_Y:
-            return 'Y';
-        case KEY_Z:
-            return 'Z';
-        case KEY_1:
-            return '1';
-        case KEY_2:
-            return '2';
-        case KEY_3:
-            return '3';
-        case KEY_4:
-            return '4';
-        case KEY_5:
-            return '5';
-        case KEY_6:
-            return '6';
-        case KEY_7:
-            return '7';
-        case KEY_8:
-            return '8';
-        case KEY_9:
-            return '9';
-        case KEY_0:
-            return '0';
-		case KEY_SPACE:
-		   return ' ';	
-		default:
-            return '\0'; // Return null character for unknown keycodes
-    }
-}
-
-void test_input(){
-	char ch = 0;
-	char keycode = 0;
-
-	do{
-		keycode = get_input_keyboard();
-		if(keycode == KEY_ENTER){
-			print_newline();
-		}else{
-			ch = get_ASCII_char(keycode);
-			if('\0'){
-				putchar('!');
-				continue;
-			}
-			putchar(ch);
-		}
-		sleep(0x02FFFFFF);
-	}while(ch > 0);
-}
 
 void print_center(char *string){
 	int len = strlen(string);

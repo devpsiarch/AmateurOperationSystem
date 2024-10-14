@@ -1,4 +1,4 @@
-#include "src/kernel.h"
+#include "src/stdio.h"
 
 extern void main(void){
 	fb_init(GREEN,BLACK);	
@@ -10,6 +10,5 @@ extern void main(void){
 		}
 		temp ++;
 	}
-
     return;
 }
