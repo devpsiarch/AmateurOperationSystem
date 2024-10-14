@@ -34,6 +34,8 @@ enum vga_color {
 U8 global_for_color = WHITE;
 U8 global_back_color = BLACK;
 
+
+
 /* The I/O ports */
 #define FB_COMMAND_PORT         0x3D4
 #define FB_DATA_PORT            0x3D5
