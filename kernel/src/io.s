@@ -1,7 +1,6 @@
 .intel_syntax noprefix
 .global outb             
-.global inb
-	
+.global inb	
 	inb:
 		mov dx,[esp + 4]
 		in al,dx

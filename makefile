@@ -4,7 +4,6 @@ all:OS
 file=kernel
 KERNEL_FILES := $(wildcard kernel/*.asm)
 KERNEL_HEADER := $(wildcard kernel/src/*.h)
-KERNEL_ASSEML := $(wildcard kernel/src/*.s)
 
 BOOT_FILE := boot/boot.asm
 ZERO_FILE := boot/zeros.asm
@@ -13,11 +12,18 @@ ZERO_FILE := boot/zeros.asm
 BOOT_BIN := $(wildcard boot/gdt/*.asm boot/src/*.asm)
 
 
+#/////////////////////////#
+#     The BOOT files     #
+#/////////////////////////#
 bin/boot.bin:$(BOOT_BIN) $(KERNEL_FILES)
 	nasm -f bin $(BOOT_FILE) -o bin/boot.bin	
 
 bin/zeros.bin:$(ZERO_FILE)
 	nasm -f bin $(ZERO_FILE) -o bin/zeros.bin
+
+#/////////////////////////#
+#    The object files     #
+#/////////////////////////#
 
 obj/kernel_entry.o:$(KERNEL_FILES)
 	nasm kernel/kernel_entry.asm -f elf32 -o obj/kernel_entry.o
@@ -25,19 +31,27 @@ obj/kernel_entry.o:$(KERNEL_FILES)
 #probebly where us should add if u added files to kernel
 obj/kernel.o:kernel/kernel.c $(KERNEL_HEADER) 
 	gcc -Wall -Wextra -Werror -fno-pie -ffreestanding -m32 -c kernel/kernel.c -o obj/kernel.o 
-
 # i dont think ill need to refactor much code here 
-obj/kernel_source.o:$(KERNEL_ASSEML)
-	gcc -c -m32 -masm=intel -Wall -Wextra $(KERNEL_ASSEML) -o obj/kernel_source.o 
+obj/kernel_io.o:kernel/src/io.s
+	gcc -c -m32 -masm=intel -Wall -Wextra kernel/src/io.s -o obj/kernel_io.o 
 
-bin/full_kernel.bin:obj/kernel.o obj/kernel_entry.o obj/kernel_source.o
-	ld -o bin/full_kernel.bin -e main -m elf_i386 -s -Ttext 0x1000 obj/kernel_entry.o obj/kernel.o obj/kernel_source.o --oformat binary
+#/////////////////////////#
+#    The binary files     #
+#/////////////////////////#
+
+bin/full_kernel.bin:obj/kernel_entry.o obj/kernel.o obj/kernel_io.o
+	ld -o bin/full_kernel.bin -e main -m elf_i386 -s -Ttext 0x1000  obj/kernel_entry.o obj/kernel.o obj/kernel_io.o --oformat binary
 
 bin/OS.bin:bin/boot.bin bin/full_kernel.bin bin/zeros.bin
 	cat bin/boot.bin bin/full_kernel.bin bin/zeros.bin > bin/OS.bin
 
 OS:bin/OS.bin
 	 qemu-system-x86_64.exe -fda bin/OS.bin -boot a
+
+#/////////////////////////#
+#       The  TOOLS        #
+#/////////////////////////#
+
 
 clean:
 	rm bin/*
