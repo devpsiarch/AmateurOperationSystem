@@ -4,7 +4,7 @@
 typedef unsigned char U8;
 typedef unsigned short U16;
 typedef unsigned int U32;
-
+typedef unsigned long U64;
 
 //ascii code for degits 0 -> 9
 int ASCII_digit[10] = {
@@ -34,6 +34,8 @@ enum vga_color {
 U8 global_for_color = WHITE;
 U8 global_back_color = BLACK;
 
+#define NULL 0
+#define TRUE 1
 
 
 /* The I/O ports */
@@ -46,29 +48,28 @@ U8 global_back_color = BLACK;
      */
 
 #define SERIAL_COM1_BASE                0x3F8      /* COM1 base port */
-
 #define SERIAL_DATA_PORT(base)          (base)
 #define SERIAL_FIFO_COMMAND_PORT(base)  (base + 2)
 #define SERIAL_LINE_COMMAND_PORT(base)  (base + 2)
 #define SERIAL_MODEM_COMMAND_PORT(base) (base + 4)
 #define SERIAL_LINE_STATUS_PORT(base)   (base + 5)
-
-
-
 #define SERIAL_LINE_ENABLE_DLAB         0x80
+
+
 /* The I/O port commands */
 #define FB_HIGH_BYTE_COMMAND    14
 #define FB_LOW_BYTE_COMMAND     15
-
-
-#define NULL 0
-#define TRUE 1
 
 #define FRAMEBUFFER_ADDRESS       0xB8000
 #define FRAMEBUFFER_32BIT_ADDRESS 0xA0000
 
 //for the printing strings and such hold chars ...
 #define BUFFER_CAP 4000 
+
+
+#define write_port(port,value) outb(port,value)
+#define read_port(port) inb(port)
+
 
 U16* fb;
 int fb_size = 0;
@@ -86,8 +87,11 @@ void print_newline();
 void print_string(char *str);
 
 void fb_copy_row(int rs,int rd);
+void* memset(void *dst,int c,U32 size);
 void mem_copy(char *dst,char *src,int size_bytes);
+//Writes to port
 void outb(U16 port,U8 data);
+//Reads from port
 U8 inb(U8 port);
 void fb_move_cursor(unsigned short pos);
 void wait_for_io(U32 timer_count);
@@ -269,6 +273,17 @@ void mem_copy(char *dst,char *src,int size_bytes){
 	for(int i = 0 ; i < size_bytes ; i++){
 		dst[i] = src[i];
 	}
+}
+
+//sets the a size of dst to the value c 
+void* memset(void *s,int c,U32 len){
+    U8 *dst = s;
+    while(len > 0){
+        *dst = (U8)c;
+        dst ++;
+        len--;
+    }
+    return s;
 }
 
 void fb_move_cursor(unsigned short pos)
