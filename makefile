@@ -31,16 +31,15 @@ obj/kernel_entry.o:$(KERNEL_FILES)
 obj/kernel.o:kernel/kernel.c $(KERNEL_HEADER) 
 	gcc -Wall -Wextra -Werror -fno-pie -ffreestanding -m32 -c kernel/kernel.c -o obj/kernel.o 
 # i dont think ill need to refactor much code here 
-obj/kernel_io.o:kernel/src/io.s
-	gcc -m32 -masm=intel -Wall -Wextra kernel/src/io.s -o obj/kernel_io.o 
-obj/kernel_idt.o:kernel/src/idt.asm
-	gcc -S -m32 -Wall -Wextra kernel/src/idt.asm -o obj/kernel_idt.o 
-
+obj/kernel_io.o:kernel/src/io.s 
+	gcc -c -m32 -masm=intel -Wall -Wextra kernel/src/io.s -o obj/kernel_io.o 
+obj/kernel_idt.o:kernel/src/idt.s 
+	gcc -c -m32 -masm=intel -Wall -Wextra kernel/src/idt.s -o obj/kernel_idt.o 
 #/////////////////////////#
 #    The binary files     #
 #/////////////////////////#
 
-bin/full_kernel.bin:obj/kernel_entry.o obj/kernel.o obj/kernel_io.o obj/kernel_idt.o
+bin/full_kernel.bin:obj/kernel_entry.o obj/kernel.o obj/kernel_io.o obj/kernel_idt.o 
 	ld -o bin/full_kernel.bin -e main -m elf_i386 -s -Ttext 0x1000  obj/kernel_entry.o obj/kernel.o obj/kernel_io.o obj/kernel_idt.o --oformat binary
 
 bin/OS.bin:bin/boot.bin bin/full_kernel.bin bin/zeros.bin
