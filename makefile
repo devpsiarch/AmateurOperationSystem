@@ -1,3 +1,6 @@
+#TODO ==> add a function to loop though all the object files needed and builds them
+
+
 all:OS	
 
 file=kernel
@@ -31,16 +34,18 @@ obj/kernel_entry.o:$(KERNEL_FILES)
 obj/kernel.o:kernel/kernel.c $(KERNEL_HEADER) 
 	gcc -Wall -Wextra -Werror -fno-pie -ffreestanding -m32 -c kernel/kernel.c -o obj/kernel.o 
 # i dont think ill need to refactor much code here 
-obj/kernel_io.o:kernel/src/io.s 
-	gcc -c -m32 -masm=intel -Wall -Wextra kernel/src/io.s -o obj/kernel_io.o 
-obj/kernel_idt.o:kernel/src/idt.s 
-	gcc -c -m32 -masm=intel -Wall -Wextra kernel/src/idt.s -o obj/kernel_idt.o 
+obj/kernel_io.o:
+	@$(call CREATE_OBJ_S,"kernel/src/io.s","obj/kernel_io.o")
+
+
+# ADD THE NEW OBJECT FILE HERE AND ADD A METHODE TO BUILD THEM
+KERNEL_OBJECT_FILES := obj/kernel_entry.o obj/kernel.o obj/kernel_io.o 
 #/////////////////////////#
 #    The binary files     #
 #/////////////////////////#
 
-bin/full_kernel.bin:obj/kernel_entry.o obj/kernel.o obj/kernel_io.o obj/kernel_idt.o 
-	ld -o bin/full_kernel.bin -e main -m elf_i386 -s -Ttext 0x1000  obj/kernel_entry.o obj/kernel.o obj/kernel_io.o obj/kernel_idt.o --oformat binary
+bin/full_kernel.bin:$(KERNEL_OBJECT_FILES) 
+	ld -o bin/full_kernel.bin -e main -m elf_i386 -s -Ttext 0x1000 $(KERNEL_OBJECT_FILES) --oformat binary
 
 bin/OS.bin:bin/boot.bin bin/full_kernel.bin bin/zeros.bin
 	cat bin/boot.bin bin/full_kernel.bin bin/zeros.bin > bin/OS.bin
@@ -52,6 +57,12 @@ OS:bin/OS.bin
 #       The  TOOLS        #
 #/////////////////////////#
 
+# This is a function that transforms assembly files to objects to be integrated to the kernel binary file
+define CREATE_OBJ_S
+	$(eval SFILE = $(1))
+	$(eval OFILE = $(2))
+	gcc -c -m32 -masm=intel -Wall -Wextra $(SFILE) -o $(OFILE) 
+endef
 
 clean:
 	rm bin/*

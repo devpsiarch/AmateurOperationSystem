@@ -1,5 +1,5 @@
-#ifndef FRAMEBUFFER_H
-#define FEAMEBUFFER_H
+#ifndef IO_H
+#define IO_H
 
 typedef unsigned char U8;
 typedef unsigned short U16;
@@ -50,12 +50,22 @@ U8 global_back_color = BLACK;
 #define SERIAL_COM1_BASE                0x3F8      /* COM1 base port */
 #define SERIAL_DATA_PORT(base)          (base)
 #define SERIAL_FIFO_COMMAND_PORT(base)  (base + 2)
-#define SERIAL_LINE_COMMAND_PORT(base)  (base + 2)
+#define SERIAL_LINE_COMMAND_PORT(base)  (base + 3)
 #define SERIAL_MODEM_COMMAND_PORT(base) (base + 4)
 #define SERIAL_LINE_STATUS_PORT(base)   (base + 5)
+    /* The I/O port commands */
+
+    /* SERIAL_LINE_ENABLE_DLAB:
+     * Tells the serial port to expect first the highest 8 bits on the data port,
+     * then the lowest 8 bits will follow
+    */
 #define SERIAL_LINE_ENABLE_DLAB         0x80
 
-
+    /** serial_configure_baud_rate:
+     *  Sets the speed of the data being sent. The default speed of a serial
+     *  port is 115200 bits/s. The argument is a divisor of that number, hence
+     *  the resulting speed becomes (115200 / divisor) bits/s.
+    */
 /* The I/O port commands */
 #define FB_HIGH_BYTE_COMMAND    14
 #define FB_LOW_BYTE_COMMAND     15
@@ -74,13 +84,21 @@ U8 global_back_color = BLACK;
 U16* fb;
 int fb_size = 0;
 static int fb_nli = 1; //next line index
+
+static int init_serial_ports(void);
 void serial_configure_baud_rate(U16 com,U16 divisor);
 void serial_configure_line(U16 com);
-int serial_is_transmit_fifo_empty(unsigned int com);
+//reading/recieving data from serial ports
+U32 serial_receive(U16 com);
+char serial_read(U16 com); 
+//sending datat to serial
+int serial_is_transmit_fifo_empty(U32 com);
+void serial_write(U16 com,char a);
+
 
 U16 fb_cell(unsigned char ch, U8 fore_color, U8 back_color);
 void fb_clear(U8 for_color,U8 back_color);
-void vga_init(U8 for_color,U8 back_color);
+void fb_init(U8 for_color,U8 back_color);
 void putchar(char c);
 void let_char(char c,int loc);
 void print_newline();
@@ -92,7 +110,7 @@ void mem_copy(char *dst,char *src,int size_bytes);
 //Writes to port
 void outb(U16 port,U8 data);
 //Reads from port
-U8 inb(U8 port);
+U8 inb(U32 port);
 void fb_move_cursor(unsigned short pos);
 void wait_for_io(U32 timer_count);
 void sleep(int timesleep);
@@ -100,14 +118,34 @@ void print_center(char *string);
 
 #endif
 
-#ifndef FRAMEBUFFER_IMPLI
-#define FRAMEBUFFER_IMPLI
+#ifndef IO_IMPLI
+#define IO_IMPLI
 
 //NOW the C part of the implimention
 
 
 //each cell of the framebuffer is a 16bit "cell" in a sense
 //here we are creating a "cell" a 16 bit value that has : ASCII (8bits) + fg(4bits) + bg(4bits)
+
+static int init_serial_ports(void){
+    outb(SERIAL_COM1_BASE+1,0x00);                      //Disables all interupts 
+    serial_configure_baud_rate(SERIAL_COM1_BASE,0x03);  //enables DLAB and divisor (baud rate)
+    serial_configure_line(SERIAL_COM1_BASE);            //8 bits, no parity, one stop bit 
+
+    outb(SERIAL_COM1_BASE + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+    outb(SERIAL_COM1_BASE + 4, 0x0B);    // IRQs enabled, RTS/DSR set
+    outb(SERIAL_COM1_BASE + 4, 0x1E);    // Set in loopback mode, test the serial chip
+    outb(SERIAL_COM1_BASE + 0, 0xAE);    // Test serial chip (send byte 0xAE and check if serial returns same byte)
+    // Check if serial is faulty (i.e: not same byte as sent)
+    if(inb(SERIAL_COM1_BASE + 0) != 0xAE) {
+       return 1;
+    }
+
+    // If serial is not faulty set it in normal operation mode
+    // (not-loopback with IRQs enabled and OUT#1 and OUT#2 bits enabled)
+    outb(SERIAL_COM1_BASE + 4, 0x0F);
+    return 0;
+}
 
 void serial_configure_baud_rate(U16 com,U16 divisor)
 {
@@ -126,12 +164,24 @@ void serial_configure_line(U16 com)
 	 */
 	outb(SERIAL_LINE_COMMAND_PORT(com), 0x03);
 }
+U32 serial_receive(U16 com){
+    return inb(SERIAL_LINE_STATUS_PORT(com)) & 1;
+}
+char serial_read(U16 com){
+    while(serial_receive(com) == 0);
 
-int serial_is_transmit_fifo_empty(unsigned int com)
+    return inb(com);
+} 
+int serial_is_transmit_fifo_empty(U32 com)
 {
 	/* 0x20 = 0010 0000 */
 	return inb(SERIAL_LINE_STATUS_PORT(com)) & 0x20;
 }
+void serial_write(U16 com,char a){
+    while(serial_is_transmit_fifo_empty(com) == 0);
+    outb(com,a);
+}
+
 
 U16 fb_cell(unsigned char ch, U8 fore_color, U8 back_color) 
 {
