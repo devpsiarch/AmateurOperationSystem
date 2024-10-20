@@ -36,10 +36,11 @@ obj/kernel.o:kernel/kernel.c $(KERNEL_HEADER)
 # i dont think ill need to refactor much code here 
 obj/kernel_io.o:
 	@$(call CREATE_OBJ_S,"kernel/src/io.s","obj/kernel_io.o")
-
+obj/kernel_page.o:
+	@$(call CREATE_OBJ_S,"kernel/src/page.s","obj/kernel_page.o")
 
 # ADD THE NEW OBJECT FILE HERE AND ADD A METHODE TO BUILD THEM
-KERNEL_OBJECT_FILES := obj/kernel_entry.o obj/kernel.o obj/kernel_io.o 
+KERNEL_OBJECT_FILES := obj/kernel_entry.o obj/kernel.o obj/kernel_io.o obj/kernel_page.o 
 #/////////////////////////#
 #    The binary files     #
 #/////////////////////////#
@@ -61,6 +62,7 @@ OS:bin/OS.bin
 define CREATE_OBJ_S
 	$(eval SFILE = $(1))
 	$(eval OFILE = $(2))
+	echo "Compiling $(SFILE) to $(OFILE) ..."
 	gcc -c -m32 -masm=intel -Wall -Wextra $(SFILE) -o $(OFILE) 
 endef
 

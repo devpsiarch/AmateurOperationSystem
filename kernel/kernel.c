@@ -1,7 +1,9 @@
 #include "./src/io.h"
+#include "./src/page.h"
 
 extern void main(void){
-	fb_init(GREEN,BLACK);	
+    enable_paging();
+    fb_init(GREEN,BLACK);	
     fb_clear(GREEN,BLACK);
     if(init_serial_ports() == 1){
         print_string("Serial port is faulty !!");
@@ -13,6 +15,7 @@ extern void main(void){
 		}
 		temp ++;
 	}
+    print_string("Kernel is working fine !!!");
 
     return;
 }
