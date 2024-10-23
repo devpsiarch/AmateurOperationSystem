@@ -34,13 +34,15 @@ obj/kernel_entry.o:$(KERNEL_FILES)
 obj/kernel.o:kernel/kernel.c $(KERNEL_HEADER) 
 	gcc -Wall -Wextra -Werror -fno-pie -ffreestanding -m32 -c kernel/kernel.c -o obj/kernel.o 
 # i dont think ill need to refactor much code here 
-obj/kernel_io.o:
+obj/kernel_io.o:kernel/src/io.s
 	@$(call CREATE_OBJ_S,"kernel/src/io.s","obj/kernel_io.o")
-obj/kernel_page.o:
+obj/kernel_page.o:kernel/src/page.s
 	@$(call CREATE_OBJ_S,"kernel/src/page.s","obj/kernel_page.o")
+obj/kernel_idt.o:kernel/src/idt.s
+	@$(call CREATE_OBJ_S,"kernel/src/idt.s","obj/kernel_idt.o")
 
 # ADD THE NEW OBJECT FILE HERE AND ADD A METHODE TO BUILD THEM
-KERNEL_OBJECT_FILES := obj/kernel_entry.o obj/kernel.o obj/kernel_io.o obj/kernel_page.o 
+KERNEL_OBJECT_FILES := obj/kernel_entry.o obj/kernel.o obj/kernel_io.o obj/kernel_page.o obj/kernel_idt.o 
 #/////////////////////////#
 #    The binary files     #
 #/////////////////////////#

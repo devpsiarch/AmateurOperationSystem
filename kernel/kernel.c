@@ -1,10 +1,11 @@
 #include "./src/io.h"
 #include "./src/page.h"
-
+#include "./src/idt.h"
 extern void main(void){
     enable_paging();
     fb_init(GREEN,BLACK);	
     fb_clear(GREEN,BLACK);
+    idt_install(); 
     if(init_serial_ports() == 1){
         print_string("Serial port is faulty !!");
     }
@@ -16,6 +17,5 @@ extern void main(void){
 		temp ++;
 	}
     print_string("Kernel is working fine !!!");
-
     return;
 }
