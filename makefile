@@ -35,14 +35,17 @@ obj/kernel.o:kernel/kernel.c $(KERNEL_HEADER)
 	gcc -Wall -Wextra -Werror -fno-pie -ffreestanding -m32 -c kernel/kernel.c -o obj/kernel.o 
 # i dont think ill need to refactor much code here 
 obj/kernel_io.o:kernel/src/io.s
-	@$(call CREATE_OBJ_S,"kernel/src/io.s","obj/kernel_io.o")
+	@$(call GCC_OBJ,"kernel/src/io.s","obj/kernel_io.o")
 obj/kernel_page.o:kernel/src/page.s
-	@$(call CREATE_OBJ_S,"kernel/src/page.s","obj/kernel_page.o")
+	@$(call GCC_OBJ,"kernel/src/page.s","obj/kernel_page.o")
 obj/kernel_idt.o:kernel/src/idt.s
-	@$(call CREATE_OBJ_S,"kernel/src/idt.s","obj/kernel_idt.o")
+	@$(call GCC_OBJ,"kernel/src/idt.s","obj/kernel_idt.o")
+obj/kernel_isr.o:kernel/src/isr.s
+	@$(call NASM_OBJ,"kernel/src/isr.s","obj/kernel_isr.o")
+
 
 # ADD THE NEW OBJECT FILE HERE AND ADD A METHODE TO BUILD THEM
-KERNEL_OBJECT_FILES := obj/kernel_entry.o obj/kernel.o obj/kernel_io.o obj/kernel_page.o obj/kernel_idt.o 
+KERNEL_OBJECT_FILES := obj/kernel_entry.o obj/kernel.o obj/kernel_io.o obj/kernel_page.o obj/kernel_idt.o obj/kernel_isr.o 
 #/////////////////////////#
 #    The binary files     #
 #/////////////////////////#
@@ -61,13 +64,19 @@ OS:bin/OS.bin
 #/////////////////////////#
 
 # This is a function that transforms assembly files to objects to be integrated to the kernel binary file
-define CREATE_OBJ_S
+define GCC_OBJ
 	$(eval SFILE = $(1))
 	$(eval OFILE = $(2))
 	echo "Compiling $(SFILE) to $(OFILE) ..."
 	gcc -c -m32 -masm=intel -Wall -Wextra $(SFILE) -o $(OFILE) 
 endef
-
+# This is another one that usese NASM instead of gcc , am too lazy to convert the others to this aswell
+define NASM_OBJ 
+	$(eval SFILE = $(1))
+	$(eval OFILE = $(2))
+	echo "Assembling $(SFILE) to $(OFILE) ..."
+	nasm -f elf32 $(SFILE) -o $(OFILE) 
+endef
 clean:
 	rm bin/*
 	rm obj/*
